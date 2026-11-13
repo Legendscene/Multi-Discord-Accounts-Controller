@@ -1,0 +1,5 @@
+# Place your Discord account tokens here (one token per line).
+# Lines starting with '#' or empty lines will be ignored.
+# Example:
+# OTk3MDExODcyNzE1NDQ0MjI0.xxxxxx.xxxxxx_xxxxxx-xxxxxx
+# MTAxMjM0NTY3ODkwMTIzNDU2.yyyyyy.yyyyyy_yyyyyy-yyyyyy

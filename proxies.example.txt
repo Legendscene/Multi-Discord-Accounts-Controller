@@ -1,0 +1,7 @@
+# Place your HTTP/HTTPS proxies here (one proxy per line).
+# Formats supported:
+# http://username:password@ip:port
+# http://ip:port
+# Example:
+# http://user123:pass456@123.45.67.89:8080
+# http://198.51.100.25:3128

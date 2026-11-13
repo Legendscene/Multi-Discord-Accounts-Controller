@@ -1,0 +1,70 @@
+<svg width="860" height="230" viewBox="0 0 860 230" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGrad2" x1="0" y1="0" x2="860" y2="230" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0f111a"/>
+      <stop offset="1" stop-color="#141724"/>
+    </linearGradient>
+    <linearGradient id="stepGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#5865F2"/>
+      <stop offset="1" stop-color="#57F287"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="860" height="230" rx="12" fill="url(#bgGrad2)" stroke="#262c3e" stroke-width="1.5"/>
+
+  <!-- Step 1 -->
+  <g transform="translate(30, 35)">
+    <rect width="180" height="160" rx="8" fill="#181c2b" stroke="#333b52"/>
+    <circle cx="28" cy="28" r="14" fill="#5865F2"/>
+    <text x="28" y="33" fill="#ffffff" font-family="sans-serif" font-size="12" font-weight="bold" text-anchor="middle">1</text>
+    <text x="52" y="33" fill="#ffffff" font-family="sans-serif" font-size="14" font-weight="700">Clone &amp; Install</text>
+    <text x="18" y="75" fill="#8b949e" font-family="sans-serif" font-size="11">Clone the repository and install Node.js dependencies:</text>
+    <rect x="12" y="110" width="156" height="32" rx="4" fill="#0d1117" stroke="#30363d"/>
+    <text x="20" y="130" fill="#79c0ff" font-family="monospace" font-size="10">npm install</text>
+  </g>
+
+  <!-- Arrow 1 -->
+  <path d="M220 115 H238" stroke="#5865F2" stroke-width="2"/>
+  <polygon points="238,115 233,111 233,119" fill="#5865F2"/>
+
+  <!-- Step 2 -->
+  <g transform="translate(245, 35)">
+    <rect width="180" height="160" rx="8" fill="#181c2b" stroke="#333b52"/>
+    <circle cx="28" cy="28" r="14" fill="#5865F2"/>
+    <text x="28" y="33" fill="#ffffff" font-family="sans-serif" font-size="12" font-weight="bold" text-anchor="middle">2</text>
+    <text x="52" y="33" fill="#ffffff" font-family="sans-serif" font-size="14" font-weight="700">Configure</text>
+    <text x="18" y="75" fill="#8b949e" font-family="sans-serif" font-size="11">Add tokens, optional proxies and captcha solver key:</text>
+    <rect x="12" y="110" width="156" height="32" rx="4" fill="#0d1117" stroke="#30363d"/>
+    <text x="20" y="130" fill="#7ee787" font-family="monospace" font-size="10">tokens.txt / proxies.txt</text>
+  </g>
+
+  <!-- Arrow 2 -->
+  <path d="M435 115 H453" stroke="#5865F2" stroke-width="2"/>
+  <polygon points="453,115 448,111 448,119" fill="#5865F2"/>
+
+  <!-- Step 3 -->
+  <g transform="translate(460, 35)">
+    <rect width="180" height="160" rx="8" fill="#181c2b" stroke="#333b52"/>
+    <circle cx="28" cy="28" r="14" fill="#5865F2"/>
+    <text x="28" y="33" fill="#ffffff" font-family="sans-serif" font-size="12" font-weight="bold" text-anchor="middle">3</text>
+    <text x="52" y="33" fill="#ffffff" font-family="sans-serif" font-size="14" font-weight="700">Launch Menu</text>
+    <text x="18" y="75" fill="#8b949e" font-family="sans-serif" font-size="11">Start interactive console or click run.bat:</text>
+    <rect x="12" y="110" width="156" height="32" rx="4" fill="#0d1117" stroke="#30363d"/>
+    <text x="20" y="130" fill="#f2cc60" font-family="monospace" font-size="10">npm start / run.bat</text>
+  </g>
+
+  <!-- Arrow 3 -->
+  <path d="M650 115 H668" stroke="#57F287" stroke-width="2"/>
+  <polygon points="668,115 663,111 663,119" fill="#57F287"/>
+
+  <!-- Step 4 -->
+  <g transform="translate(675, 35)">
+    <rect width="155" height="160" rx="8" fill="#181c2b" stroke="#333b52"/>
+    <circle cx="28" cy="28" r="14" fill="#57F287"/>
+    <text x="28" y="33" fill="#0d1117" font-family="sans-serif" font-size="12" font-weight="bold" text-anchor="middle">4</text>
+    <text x="52" y="33" fill="#ffffff" font-family="sans-serif" font-size="14" font-weight="700">Control</text>
+    <text x="18" y="75" fill="#8b949e" font-family="sans-serif" font-size="11">Choose an action from the numbered menu:</text>
+    <rect x="12" y="110" width="131" height="32" rx="4" fill="#0d1117" stroke="#30363d"/>
+    <text x="20" y="130" fill="#57F287" font-family="monospace" font-size="10">1 to 17 Options</text>
+  </g>
+</svg>

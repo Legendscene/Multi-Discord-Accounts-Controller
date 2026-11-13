@@ -1,0 +1,6 @@
+{
+  "captcha_key": "",
+  "request_delay_ms": 800,
+  "connect_stagger_min_s": 10,
+  "connect_stagger_max_s": 25
+}

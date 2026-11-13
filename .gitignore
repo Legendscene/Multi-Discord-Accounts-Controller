@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Sensitive tokens & keys (NEVER COMMIT)
+tokens.txt
+tokens.txt.bak*
+tokens.enc
+.key
+proxies.txt
+config.json
+profiles.json
+.env
+
+# Captcha solver temporary files
+captcha_solve.html
+
+# Logs & temp files
+*.log
+test_start.log
+
+# IDE & AI Assistant metadata
+.freebuff/
+.superbrain/
+.vscode/
+.idea/
+
+# OS generated files
+.DS_Store
+Thumbs.db

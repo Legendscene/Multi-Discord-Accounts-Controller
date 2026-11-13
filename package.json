@@ -1,0 +1,26 @@
+{
+  "name": "multi-discord-accounts-controller",
+  "version": "1.0.0",
+  "description": "Educational multi-account controller and management suite for Discord",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "online": "node online.js"
+  },
+  "keywords": [
+    "discord",
+    "multi-account",
+    "account-manager",
+    "automation",
+    "educational"
+  ],
+  "author": "Legendscene",
+  "license": "MIT",
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "darkcaptcha": "1.0.3",
+    "https-proxy-agent": "^9.1.0",
+    "playwright": "^1.61.1",
+    "ws": "^8.21.0"
+  }
+}

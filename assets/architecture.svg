@@ -1,0 +1,137 @@
+<svg width="860" height="480" viewBox="0 0 860 480" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="860" y2="480" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0d1117"/>
+      <stop offset="1" stop-color="#161b22"/>
+    </linearGradient>
+    <linearGradient id="boxGrad1" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#1f242c"/>
+      <stop offset="1" stop-color="#161b22"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="860" height="480" rx="12" fill="url(#bgGrad)" stroke="#30363d" stroke-width="1.5"/>
+
+  <!-- Title -->
+  <text x="430" y="42" fill="#58a6ff" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="20" font-weight="700" text-anchor="middle">
+    Multi Discord Account Controller — System Architecture
+  </text>
+  <text x="430" y="65" fill="#8b949e" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="12" text-anchor="middle">
+    High-level modular components, data flow &amp; execution pipeline
+  </text>
+
+  <!-- 4 Columns / Blocks -->
+
+  <!-- Column 1: Configuration & Inputs -->
+  <g transform="translate(40, 95)">
+    <rect width="170" height="340" rx="10" fill="url(#boxGrad1)" stroke="#58a6ff" stroke-width="1.5"/>
+    <rect x="0" y="0" width="170" height="38" rx="10" fill="#1f293d"/>
+    <path d="M0 28H170V38H0Z" fill="#1f293d"/>
+    <text x="85" y="24" fill="#79c0ff" font-family="sans-serif" font-size="13" font-weight="700" text-anchor="middle">1. INPUT &amp; CONFIG</text>
+
+    <!-- Items -->
+    <rect x="15" y="55" width="140" height="48" rx="6" fill="#0d1117" stroke="#30363d"/>
+    <text x="25" y="75" fill="#c9d1d9" font-family="monospace" font-size="11" font-weight="600">tokens.txt</text>
+    <text x="25" y="92" fill="#8b949e" font-family="sans-serif" font-size="10">Discord Account Tokens</text>
+
+    <rect x="15" y="115" width="140" height="48" rx="6" fill="#0d1117" stroke="#30363d"/>
+    <text x="25" y="135" fill="#c9d1d9" font-family="monospace" font-size="11" font-weight="600">proxies.txt</text>
+    <text x="25" y="152" fill="#8b949e" font-family="sans-serif" font-size="10">HTTP / HTTPS Proxy Pool</text>
+
+    <rect x="15" y="175" width="140" height="48" rx="6" fill="#0d1117" stroke="#30363d"/>
+    <text x="25" y="195" fill="#c9d1d9" font-family="monospace" font-size="11" font-weight="600">config.json</text>
+    <text x="25" y="212" fill="#8b949e" font-family="sans-serif" font-size="10">Delays &amp; Captcha Keys</text>
+
+    <rect x="15" y="235" width="140" height="48" rx="6" fill="#0d1117" stroke="#30363d"/>
+    <text x="25" y="255" fill="#c9d1d9" font-family="monospace" font-size="11" font-weight="600">profiles.json</text>
+    <text x="25" y="272" fill="#8b949e" font-family="sans-serif" font-size="10">Fingerprint &amp; UA State</text>
+  </g>
+
+  <!-- Arrow 1 to 2 -->
+  <path d="M215 260 H235" stroke="#58a6ff" stroke-width="2" stroke-dasharray="4 2"/>
+  <polygon points="235,260 228,256 228,264" fill="#58a6ff"/>
+
+  <!-- Column 2: Security & Profile Engine -->
+  <g transform="translate(240, 95)">
+    <rect width="170" height="340" rx="10" fill="url(#boxGrad1)" stroke="#d2a8ff" stroke-width="1.5"/>
+    <rect x="0" y="0" width="170" height="38" rx="10" fill="#2d2238"/>
+    <path d="M0 28H170V38H0Z" fill="#2d2238"/>
+    <text x="85" y="24" fill="#d2a8ff" font-family="sans-serif" font-size="13" font-weight="700" text-anchor="middle">2. CORE ENGINE</text>
+
+    <!-- Items -->
+    <rect x="15" y="55" width="140" height="48" rx="6" fill="#0d1117" stroke="#30363d"/>
+    <text x="25" y="75" fill="#c9d1d9" font-family="sans-serif" font-size="11" font-weight="600">Fingerprint Emulation</text>
+    <text x="25" y="92" fill="#8b949e" font-family="sans-serif" font-size="10">Chrome/Firefox UA &amp; Builds</text>
+
+    <rect x="15" y="115" width="140" height="48" rx="6" fill="#0d1117" stroke="#30363d"/>
+    <text x="25" y="135" fill="#c9d1d9" font-family="sans-serif" font-size="11" font-weight="600">Rate Limiter Budget</text>
+    <text x="25" y="152" fill="#8b949e" font-family="sans-serif" font-size="10">IDENTIFY 3/24h Protection</text>
+
+    <rect x="15" y="175" width="140" height="48" rx="6" fill="#0d1117" stroke="#30363d"/>
+    <text x="25" y="195" fill="#c9d1d9" font-family="sans-serif" font-size="11" font-weight="600">Jittered Timing</text>
+    <text x="25" y="212" fill="#8b949e" font-family="sans-serif" font-size="10">Humanized Stagger Delays</text>
+
+    <rect x="15" y="235" width="140" height="48" rx="6" fill="#0d1117" stroke="#30363d"/>
+    <text x="25" y="255" fill="#c9d1d9" font-family="sans-serif" font-size="11" font-weight="600">Captcha Bypass</text>
+    <text x="25" y="272" fill="#8b949e" font-family="sans-serif" font-size="10">DarkCaptcha &amp; 2Captcha</text>
+  </g>
+
+  <!-- Arrow 2 to 3 -->
+  <path d="M415 260 H435" stroke="#d2a8ff" stroke-width="2" stroke-dasharray="4 2"/>
+  <polygon points="435,260 428,256 428,264" fill="#d2a8ff"/>
+
+  <!-- Column 3: Gateway & Connection Layer -->
+  <g transform="translate(440, 95)">
+    <rect width="170" height="340" rx="10" fill="url(#boxGrad1)" stroke="#57f287" stroke-width="1.5"/>
+    <rect x="0" y="0" width="170" height="38" rx="10" fill="#1b2e22"/>
+    <path d="M0 28H170V38H0Z" fill="#1b2e22"/>
+    <text x="85" y="24" fill="#7ee787" font-family="sans-serif" font-size="13" font-weight="700" text-anchor="middle">3. GATEWAY LAYER</text>
+
+    <!-- Items -->
+    <rect x="15" y="55" width="140" height="48" rx="6" fill="#0d1117" stroke="#30363d"/>
+    <text x="25" y="75" fill="#c9d1d9" font-family="sans-serif" font-size="11" font-weight="600">WebSocket Keep-Alive</text>
+    <text x="25" y="92" fill="#8b949e" font-family="sans-serif" font-size="10">Heartbeats &amp; Reconnection</text>
+
+    <rect x="15" y="115" width="140" height="48" rx="6" fill="#0d1117" stroke="#30363d"/>
+    <text x="25" y="135" fill="#c9d1d9" font-family="sans-serif" font-size="11" font-weight="600">Voice State Gateway</text>
+    <text x="25" y="152" fill="#8b949e" font-family="sans-serif" font-size="10">Multi-Channel VC Join</text>
+
+    <rect x="15" y="175" width="140" height="48" rx="6" fill="#0d1117" stroke="#30363d"/>
+    <text x="25" y="195" fill="#c9d1d9" font-family="sans-serif" font-size="11" font-weight="600">24/7 Sleep Cycle</text>
+    <text x="25" y="212" fill="#8b949e" font-family="sans-serif" font-size="10">Mimic Active/Sleep Shift</text>
+
+    <rect x="15" y="235" width="140" height="48" rx="6" fill="#0d1117" stroke="#30363d"/>
+    <text x="25" y="255" fill="#c9d1d9" font-family="sans-serif" font-size="11" font-weight="600">Proxy Routing</text>
+    <text x="25" y="272" fill="#8b949e" font-family="sans-serif" font-size="10">Per-Token Dedicated IP</text>
+  </g>
+
+  <!-- Arrow 3 to 4 -->
+  <path d="M615 260 H635" stroke="#57f287" stroke-width="2" stroke-dasharray="4 2"/>
+  <polygon points="635,260 628,256 628,264" fill="#57f287"/>
+
+  <!-- Column 4: Automation Actions -->
+  <g transform="translate(640, 95)">
+    <rect width="180" height="340" rx="10" fill="url(#boxGrad1)" stroke="#5865f2" stroke-width="1.5"/>
+    <rect x="0" y="0" width="180" height="38" rx="10" fill="#202545"/>
+    <path d="M0 28H180V38H0Z" fill="#202545"/>
+    <text x="90" y="24" fill="#8ea1e1" font-family="sans-serif" font-size="13" font-weight="700" text-anchor="middle">4. AUTOMATION</text>
+
+    <!-- Items -->
+    <rect x="15" y="55" width="150" height="48" rx="6" fill="#0d1117" stroke="#30363d"/>
+    <text x="25" y="75" fill="#c9d1d9" font-family="sans-serif" font-size="11" font-weight="600">Bulk Server Join</text>
+    <text x="25" y="92" fill="#8b949e" font-family="sans-serif" font-size="10">Guild Invites &amp; Verification</text>
+
+    <rect x="15" y="115" width="150" height="48" rx="6" fill="#0d1117" stroke="#30363d"/>
+    <text x="25" y="135" fill="#c9d1d9" font-family="sans-serif" font-size="11" font-weight="600">Button Click &amp; React</text>
+    <text x="25" y="152" fill="#8b949e" font-family="sans-serif" font-size="10">Message Components &amp; Emotes</text>
+
+    <rect x="15" y="175" width="150" height="48" rx="6" fill="#0d1117" stroke="#30363d"/>
+    <text x="25" y="195" fill="#c9d1d9" font-family="sans-serif" font-size="11" font-weight="600">Profile &amp; Bio Customizer</text>
+    <text x="25" y="212" fill="#8b949e" font-family="sans-serif" font-size="10">Nicknames, Global &amp; Status</text>
+
+    <rect x="15" y="235" width="150" height="48" rx="6" fill="#0d1117" stroke="#30363d"/>
+    <text x="25" y="255" fill="#c9d1d9" font-family="sans-serif" font-size="11" font-weight="600">Token Hygiene</text>
+    <text x="25" y="272" fill="#8b949e" font-family="sans-serif" font-size="10">Checker &amp; Auto-Clean Dead</text>
+  </g>
+</svg>
