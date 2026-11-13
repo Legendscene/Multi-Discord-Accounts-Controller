@@ -5,9 +5,10 @@
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License" /></a>
   <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/Node.js-16%2B-brightgreen.svg" alt="Node.js" /></a>
+  <img src="https://img.shields.io/badge/Version-2.0.0-blueviolet.svg" alt="Version" />
   <img src="https://img.shields.io/badge/Purpose-Educational%20Only-red.svg" alt="Educational Only" />
+  <img src="https://img.shields.io/badge/Security-AES--256--GCM-green.svg" alt="Security" />
   <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg" alt="Platform" />
-  <img src="https://img.shields.io/badge/Status-Active-success.svg" alt="Status" />
 </p>
 
 ---
@@ -24,7 +25,7 @@
 
 ## 📖 Overview
 
-**Multi Discord Accounts Controller** is an educational, multi-threaded Node.js management console designed to demonstrate how large-scale WebSocket gateway connections, API rate budgeting, browser fingerprint emulation, and proxy dispatching operate.
+**Multi Discord Accounts Controller v2.0** is an educational, multi-threaded Node.js management console designed to demonstrate how large-scale WebSocket gateway connections, API rate budgeting, browser fingerprint emulation, proxy dispatching, and cryptographic token storage operate.
 
 It provides an interactive terminal interface to manage multiple accounts simultaneously, test gateway resilience, automate test actions, and simulate human connection patterns.
 
@@ -59,7 +60,7 @@ How tokens, proxies, WebSocket gateways, and modules interact:
 
 ---
 
-## ⚡ Key Features
+## ⚡ Key Features (v2.0)
 
 | # | Feature | Description |
 |---|---------|-------------|
@@ -73,21 +74,36 @@ How tokens, proxies, WebSocket gateways, and modules interact:
 | 🟢 | **Custom Status Controller** | Sets online states (`Online`, `Idle`, `Do Not Disturb`, `Invisible`) |
 | 📝 | **Profile Bio Updater** | Bulk updates account "About Me" description text |
 | 🎲 | **Randomized Statuses** | Rotates custom statuses with randomized delay timing |
-| 😃 | **Auto-React (Manual)** | Mass-adds specified custom or standard emojis to target messages |
+| 😃 | **Auto-React (Manual)** | Mass-adds specified custom or standard emojis with rate-limit protection |
 | 🔍 | **Auto-React (Detect)** | Automatically scans and mirrors existing reactions on a message |
-| 🎙️ | **Voice Channel (VC) Join** | Connects accounts to Discord Voice Channels with mute/deaf & gateway keep-alive |
+| 🎙️ | **Voice Channel (VC) Join** | Connects accounts to Discord Voice Channels with proxy routing & keep-alive |
 | 🔌 | **Disconnect All** | Gracefully disconnects all active voice channels and gateway WebSockets |
-| 🔘 | **Button Clicker** | Automates interactions with message component buttons (Rules, Verification, Roles) |
-| ⏰ | **24/7 Persistent Status** | Continuous gateway daemon with heartbeat keepalive and reconnect logic |
+| 🔘 | **Button Clicker** | Pre-fetches component metadata once and clicks buttons on messages |
+| ⏰ | **24/7 Persistent Status** | Continuous gateway daemon with heartbeat keepalive and sleep cycles |
 | 🚪 | **Bulk Server Leave** | Leaves single or multiple servers via Guild ID list |
-| 🌙 | **Smart Online Daemon** | `online.js` simulates human sleep/wake cycles (e.g. 20h online, 2-4h offline) |
+| 🌐 | **Proxy Latency Tester** | Tests proxy pool against Discord gateway, reporting live ping & status |
+| 🔐 | **AES-256-GCM Storage** | Military-grade authenticated encryption for securing tokens at rest |
+| 🌙 | **Smart Online Daemon** | `online.js` proxy-aware daemon simulating human sleep/wake cycles |
+
+---
+
+## 🛠️ Bug Fixes & Improvements in v2.0
+
+* **Fixed Disconnect Counter**: Resolved bug in `handleDisconnectAll()` where account count was wiped before total calculation.
+* **Fixed Voice Channel Proxy Leak**: Voice Channel connections now route through the configured proxy pool instead of leaking direct host IP.
+* **Playwright Memory Leak Fix**: Browser contexts are now strictly managed within `try ... finally` blocks to prevent memory leaks during captcha solving.
+* **HTTP/2 Session Recovery**: Automatic fallback to HTTP/1.1 if an HTTP/2 session encounters GOAWAY or connection drops.
+* **Stealth Account Name Fetching**: Replaced direct headerless requests in `getName()` with full browser fingerprint and proxy-aware request pipeline.
+* **Smart Reaction Throttling**: Auto-react now applies a 350ms delay between consecutive reactions to avoid HTTP 429 rate limits.
+* **Button Clicker Optimization**: Reduced API calls by 66% during multi-account button clicks by reusing message and guild metadata.
+* **AES-256-GCM Encrypted Storage**: Full support for `.key` and `tokens.enc` encrypted files, allowing tokens to remain encrypted on disk.
 
 ---
 
 ## 🛡️ Anti-Detection & Reliability Architecture
 
 * **IDENTIFY Budget Limiter**: Discord strictly limits WebSocket `IDENTIFY` payloads to 5 per 24 hours per token. This tool enforces a maximum budget of 3 IDENTIFY calls per 24 hours to prevent account flagging.
-* **Realistic Browser Fingerprints**: Rotates realistic User-Agents (Chrome 124–126, Firefox, Edge, Safari), build numbers, client properties, locales (`en-US`, `hi-IN`, etc.), and timezones.
+* **Realistic Browser Fingerprints**: Rotates realistic User-Agents (Chrome 124–127, Firefox, Edge, Safari), build numbers, client properties, locales (`en-US`, `hi-IN`, etc.), and timezones.
 * **Jittered Stagger Delays**: Configurable random delay windows (e.g. 10s to 25s) between consecutive connections.
 * **Token Masking**: Prevents accidental exposure of account credentials in terminal output or screen recordings (`OTk3MD...xxxx`).
 * **Proxy Pool Support**: Rotates through HTTP/HTTPS proxies to distribute network origin footprints.
@@ -116,7 +132,7 @@ npm install
 
 ## ⚙️ Configuration
 
-### 1. Account Tokens (`tokens.txt`)
+### 1. Account Tokens (`tokens.txt` or `tokens.enc`)
 Create a `tokens.txt` file in the root directory (or copy from `tokens.example.txt`):
 ```bash
 cp tokens.example.txt tokens.txt
@@ -126,6 +142,7 @@ Paste your account tokens (one token per line):
 OTk3MDExODcyNzE1NDQ0MjI0.xxxxxx.xxxxxx_xxxxxx-xxxxxx
 MTAxMjM0NTY3ODkwMTIzNDU2.yyyyyy.yyyyyy_yyyyyy-yyyyyy
 ```
+> **Tip**: You can use Option `19` in the menu to encrypt `tokens.txt` into `tokens.enc` using AES-256-GCM and delete `tokens.txt` for maximum local security!
 
 ### 2. Optional Proxies (`proxies.txt`)
 Create a `proxies.txt` file (or copy from `proxies.example.txt`):
@@ -175,7 +192,7 @@ npm run online
 
 ```
 Multi-Discord-Accounts-Controller/
-├── assets/                  # Diagrams, previews, and banner graphics
+├── assets/                  # Visual diagrams, previews, and banner graphics
 │   ├── banner.svg           # Project header banner
 │   ├── cli_preview.svg      # CLI terminal mockup & visual preview
 │   ├── architecture.svg     # Modular architecture diagram
@@ -183,8 +200,8 @@ Multi-Discord-Accounts-Controller/
 ├── src/
 │   ├── index.js             # Interactive CLI menu & action dispatchers
 │   ├── core.js              # Discord REST API, Gateway WebSocket, Fingerprints
-│   └── security.js          # Token storage & cryptographic hashing
-├── online.js                # Standalone 24/7 online & sleep-cycle daemon
+│   └── security.js          # AES-256-GCM encryption, rate limiting & token store
+├── online.js                # Standalone 24/7 proxy-aware sleep-cycle daemon
 ├── run.bat                  # One-click Windows launcher
 ├── config.example.json      # Sample configuration template
 ├── tokens.example.txt       # Sample token input format
@@ -198,7 +215,7 @@ Multi-Discord-Accounts-Controller/
 
 ## 🔒 Security Best Practices
 
-* **Never commit sensitive files**: `tokens.txt`, `proxies.txt`, `config.json`, and `.key` are pre-configured in `.gitignore`.
+* **Never commit sensitive files**: `tokens.txt`, `tokens.enc`, `.key`, `proxies.txt`, `config.json` are pre-configured in `.gitignore`.
 * **Use Proxies**: Always distribute requests across multiple proxies to prevent IP rate-limiting.
 * **Keep delays realistic**: Lower delays increase the risk of API threshold blocks and challenge triggers.
 

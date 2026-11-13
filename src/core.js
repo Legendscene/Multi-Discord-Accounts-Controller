@@ -6,25 +6,7 @@ const path = require("path");
 const zlib = require("zlib");
 const WebSocket = require("ws");
 const { HttpsProxyAgent } = require("https-proxy-agent");
-const { hashTokenForProfile } = require("./security");
-
-// IDENTIFY rate limiter
-const _identifyCounts = new Map();
-const IDENTIFY_LIMIT = 3; // Max 3 IDENTIFY per 24h (Discord limit is 5, 2 buffer)
-const IDENTIFY_WINDOW = 24 * 60 * 60 * 1000;
-function canIdentify(token) {
-  const now = Date.now();
-  const counts = _identifyCounts.get(token) || [];
-  const recent = counts.filter(t => now - t < IDENTIFY_WINDOW);
-  _identifyCounts.set(token, recent);
-  return recent.length < IDENTIFY_LIMIT;
-}
-function recordIdentify(token) {
-  const now = Date.now();
-  const counts = _identifyCounts.get(token) || [];
-  counts.push(now);
-  _identifyCounts.set(token, counts);
-}
+const { hashTokenForProfile, canIdentify, recordIdentify, isOnCooldown, markFailed, IDENTIFY_LIMIT } = require("./security");
 
 const PROXIES_FILE = path.join(__dirname, "..", "proxies.txt");
 const PROFILES_FILE = path.join(__dirname, "..", "profiles.json");
@@ -349,25 +331,43 @@ function resolveResult(status, chunks, encoding, setCookie) {
 
 function makeH2Request(method, path, headers, bodyData) {
   return new Promise((resolve) => {
-    const session = getH2Session();
-    const reqHeaders = { ":method": method, ":path": path, ...headers };
-    if (bodyData) reqHeaders["content-length"] = Buffer.byteLength(bodyData);
-    const req = session.request(reqHeaders);
-    let chunks = [];
-    let status = 0;
-    let encoding = null;
-    let setCookie = null;
-    req.on("response", (respHeaders) => {
-      status = Number(respHeaders[":status"]);
-      const raw = respHeaders["set-cookie"];
-      if (raw) setCookie = Array.isArray(raw) ? raw : [raw];
-      encoding = respHeaders["content-encoding"] || null;
-    });
-    req.on("data", (c) => chunks.push(Buffer.isBuffer(c) ? c : Buffer.from(c)));
-    req.on("end", () => resolveResult(status, chunks, encoding, setCookie).then(resolve));
-    req.on("error", () => resolve({ status: 0, data: "HTTP/2 error", setCookie: null }));
-    if (bodyData) req.write(bodyData);
-    req.end();
+    try {
+      const session = getH2Session();
+      if (!session || session.closed || session.destroyed) {
+        _h2Session = null;
+        return makeH1Request(method, path, null, headers, bodyData).then(resolve);
+      }
+      const reqHeaders = { ":method": method, ":path": path, ...headers };
+      if (bodyData) reqHeaders["content-length"] = Buffer.byteLength(bodyData);
+      let req;
+      try {
+        req = session.request(reqHeaders);
+      } catch (err) {
+        _h2Session = null;
+        return makeH1Request(method, path, null, headers, bodyData).then(resolve);
+      }
+      let chunks = [];
+      let status = 0;
+      let encoding = null;
+      let setCookie = null;
+      req.on("response", (respHeaders) => {
+        status = Number(respHeaders[":status"]);
+        const raw = respHeaders["set-cookie"];
+        if (raw) setCookie = Array.isArray(raw) ? raw : [raw];
+        encoding = respHeaders["content-encoding"] || null;
+      });
+      req.on("data", (c) => chunks.push(Buffer.isBuffer(c) ? c : Buffer.from(c)));
+      req.on("end", () => resolveResult(status, chunks, encoding, setCookie).then(resolve));
+      req.on("error", () => {
+        _h2Session = null;
+        makeH1Request(method, path, null, headers, bodyData).then(resolve);
+      });
+      if (bodyData) req.write(bodyData);
+      req.end();
+    } catch {
+      _h2Session = null;
+      makeH1Request(method, path, null, headers, bodyData).then(resolve);
+    }
   });
 }
 
@@ -390,41 +390,55 @@ function makeH1Request(method, path, agent, headers, bodyData) {
 let _pwBrowser = null;
 
 async function solveCaptcha(sitekey, rqdata) {
-  const dc = require("darkcaptcha");
+  let dc;
+  try {
+    dc = require("darkcaptcha");
+  } catch {
+    return { solved: false, error: "darkcaptcha module not installed" };
+  }
   const { chromium } = require("playwright");
 
   if (!_pwBrowser) {
-    _pwBrowser = await chromium.launch({
-      headless: !process.env.DC_DEBUG,
-      args: [
-        "--no-sandbox", "--disable-setuid-sandbox",
-        "--disable-blink-features=AutomationControlled",
-        "--disable-web-security",
-        "--disable-features=IsolateOrigins,site-per-process",
-        "--window-size=1280,720",
-      ],
-    });
+    try {
+      _pwBrowser = await chromium.launch({
+        headless: !process.env.DC_DEBUG,
+        args: [
+          "--no-sandbox", "--disable-setuid-sandbox",
+          "--disable-blink-features=AutomationControlled",
+          "--disable-web-security",
+          "--disable-features=IsolateOrigins,site-per-process",
+          "--window-size=1280,720",
+        ],
+      });
+    } catch (err) {
+      return { solved: false, error: `Browser launch failed: ${err.message}` };
+    }
   }
 
-  const ctx = await _pwBrowser.newContext({
-    userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
-    locale: "en-US",
-    viewport: { width: 1280, height: 720 },
-  });
-  await ctx.addInitScript(() => {
-    Object.defineProperty(navigator, "webdriver", { get: () => false });
-  });
-  const page = await ctx.newPage();
+  let ctx = null;
+  try {
+    ctx = await _pwBrowser.newContext({
+      userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+      locale: "en-US",
+      viewport: { width: 1280, height: 720 },
+    });
+    await ctx.addInitScript(() => {
+      Object.defineProperty(navigator, "webdriver", { get: () => false });
+    });
+    const page = await ctx.newPage();
 
-  const html = `<!DOCTYPE html><html><head>
+    const safeSitekey = JSON.stringify(sitekey || "");
+    const safeRqdata = JSON.stringify(rqdata || "");
+
+    const html = `<!DOCTYPE html><html><head>
 <script src="https://js.hcaptcha.com/1/api.js?render=explicit&onload=dcL" async defer></script>
 <style>body{display:flex;justify-content:center;align-items:center;height:100vh;margin:0;background:#f0f0f0}</style>
 </head><body><div id="dc-hc"></div>
 <script>
 window.dcL=function() {
   hcaptcha.render("dc-hc", {
-    sitekey:"${sitekey}",
-    rqdata:"${rqdata || ""}",
+    sitekey: ${safeSitekey},
+    rqdata: ${safeRqdata},
     callback:function(t){ document.title="TOKEN:"+t; },
     errorCallback:function(){ document.title="ERR_CAPTCHA"; },
     expiredCallback:function(){ document.title="EXPIRED"; }
@@ -435,60 +449,66 @@ setTimeout(function(){
 }, 90000);
 </script></body></html>`;
 
-  await page.route("**/*", (route) => {
-    const u = route.request().url();
-    if (u === "https://discord.com/" || u === "https://discord.com" || u.startsWith("https://discord.com/?")) {
-      route.fulfill({ status: 200, contentType: "text/html", body: html });
-    } else if (u.startsWith("https://discord.com")) {
-      route.fulfill({ status: 200, contentType: "text/html", body: html });
-    } else {
-      route.continue();
-    }
-  });
-
-  await page.goto("https://discord.com/", { waitUntil: "domcontentloaded", timeout: 15000 });
-  await page.waitForTimeout(3000);
-
-  // Wait for hCaptcha iframe
-  let hcaptchaFrame = null;
-  for (let i = 0; i < 20; i++) {
-    try {
-      hcaptchaFrame = page.frameLocator('iframe[src*="hcaptcha.com"]').first();
-      const cb = hcaptchaFrame.locator('#checkbox');
-      if (await cb.isVisible({ timeout: 1000 }).catch(() => false)) break;
-    } catch {}
-    await sleep(500);
-  }
-
-  // Click checkbox
-  if (hcaptchaFrame) {
-    try {
-      const cb = hcaptchaFrame.locator('#checkbox, .hcaptcha-box, [role="checkbox"]');
-      if (await cb.isVisible({ timeout: 3000 }).catch(() => false)) {
-        await cb.click({ timeout: 5000 });
-        await page.waitForTimeout(2000);
+    await page.route("**/*", (route) => {
+      const u = route.request().url();
+      if (u === "https://discord.com/" || u === "https://discord.com" || u.startsWith("https://discord.com/?")) {
+        route.fulfill({ status: 200, contentType: "text/html", body: html });
+      } else if (u.startsWith("https://discord.com")) {
+        route.fulfill({ status: 200, contentType: "text/html", body: html });
+      } else {
+        route.continue();
       }
-    } catch {}
-  }
+    });
 
-  // Handle challenge (image or audio)
-  let token = await _getToken(page);
-  if (token) return { solved: true, token };
+    await page.goto("https://discord.com/", { waitUntil: "domcontentloaded", timeout: 15000 });
+    await page.waitForTimeout(3000);
 
-  // Try AI image challenge solving
-  if (dc.CLIPSolver && dc.CLIPSolver.isAvailable()) {
-    token = await _solveImageChallenge(page, hcaptchaFrame, dc);
+    // Wait for hCaptcha iframe
+    let hcaptchaFrame = null;
+    for (let i = 0; i < 20; i++) {
+      try {
+        hcaptchaFrame = page.frameLocator('iframe[src*="hcaptcha.com"]').first();
+        const cb = hcaptchaFrame.locator('#checkbox');
+        if (await cb.isVisible({ timeout: 1000 }).catch(() => false)) break;
+      } catch {}
+      await sleep(500);
+    }
+
+    // Click checkbox
+    if (hcaptchaFrame) {
+      try {
+        const cb = hcaptchaFrame.locator('#checkbox, .hcaptcha-box, [role="checkbox"]');
+        if (await cb.isVisible({ timeout: 3000 }).catch(() => false)) {
+          await cb.click({ timeout: 5000 });
+          await page.waitForTimeout(2000);
+        }
+      } catch {}
+    }
+
+    // Handle challenge (image or audio)
+    let token = await _getToken(page);
     if (token) return { solved: true, token };
+
+    // Try AI image challenge solving
+    if (dc && dc.CLIPSolver && dc.CLIPSolver.isAvailable()) {
+      token = await _solveImageChallenge(page, hcaptchaFrame, dc);
+      if (token) return { solved: true, token };
+    }
+
+    // Try audio challenge fallback
+    token = await _solveAudioChallenge(page, hcaptchaFrame, dc);
+    if (token) return { solved: true, token };
+
+    // Final attempt: read textarea directly
+    token = await _getToken(page);
+    return token ? { solved: true, token } : { solved: false, error: "hCaptcha solve failed" };
+  } catch (err) {
+    return { solved: false, error: err.message || "Captcha solve exception" };
+  } finally {
+    if (ctx) {
+      try { await ctx.close(); } catch {}
+    }
   }
-
-  // Try audio challenge fallback
-  token = await _solveAudioChallenge(page, hcaptchaFrame, dc);
-  if (token) return { solved: true, token };
-
-  // Final attempt: read textarea directly
-  token = await _getToken(page);
-  await ctx.close();
-  return token ? { solved: true, token } : { solved: false, error: "hCaptcha solve failed" };
 }
 
 async function _getToken(page) {
@@ -630,10 +650,16 @@ async function makeRequest(method, path, token, ctx, bodyData) {
 
   if (token && profile && !profile.initDone) {
     profile.initDone = true;
-    const e = https.request({ hostname: "discord.com", path: "/api/v9/experiments", method: "GET", headers: { authorization: token, "user-agent": profile.ua }, setHost: true }, (r) => {
+    const { agent: initAgent } = getRandomProxy();
+    const expOpts = { hostname: "discord.com", path: "/api/v9/experiments", method: "GET", headers: { authorization: token, "user-agent": profile.ua }, setHost: true };
+    if (initAgent) expOpts.agent = initAgent;
+    const e = https.request(expOpts, (r) => {
       let b = ""; r.on("data", c => b += c); r.on("end", () => {
         const cs = parseCookies(r.headers["set-cookie"]);
-        if (cs) profile.cookieStr = cs;
+        if (cs) {
+          profile.cookieStr = cs;
+          saveProfiles();
+        }
       });
     });
     e.on("error", () => {});
@@ -652,7 +678,10 @@ async function makeRequest(method, path, token, ctx, bodyData) {
   }
 
   const cs = parseCookies(result.setCookie);
-  if (cs && profile) profile.cookieStr = cs;
+  if (cs && profile && profile.cookieStr !== cs) {
+    profile.cookieStr = cs;
+    saveProfiles();
+  }
 
   if (result.status === 429) {
     const retryAfter = typeof result.data === "object" && result.data ? (result.data.retry_after || 1) : 1;
@@ -900,17 +929,24 @@ function fetchMessageComponents(token, channelId, messageId) {
   });
 }
 
-async function clickMessageButton(token, channelId, messageId, customId) {
-  const channelRes = await apiRequest("GET", `/api/v9/channels/${channelId}`, token, "Messages");
-  const guildId = channelRes.status === 200 ? channelRes.data?.guild_id : null;
+async function clickMessageButton(token, channelId, messageId, customId, cachedMeta = null) {
+  let guildId = cachedMeta?.guildId;
+  let applicationId = cachedMeta?.applicationId;
+  let messageFlags = cachedMeta?.messageFlags || 0;
 
-  const msgRes = await apiRequest("GET", `/api/v9/channels/${channelId}/messages?limit=50&around=${messageId}`, token, "Messages");
-  if (msgRes.status !== 200) return { success: false, reason: "Could not fetch messages" };
-  const msgs = Array.isArray(msgRes.data) ? msgRes.data : [];
-  const d = msgs.find(m => m.id === messageId);
-  if (!d) return { success: false, reason: "Message not found" };
+  if (!applicationId) {
+    const channelRes = await apiRequest("GET", `/api/v9/channels/${channelId}`, token, "Messages");
+    guildId = channelRes.status === 200 ? channelRes.data?.guild_id : null;
 
-  let applicationId = d.application_id || d.author?.id;
+    const msgRes = await apiRequest("GET", `/api/v9/channels/${channelId}/messages?limit=50&around=${messageId}`, token, "Messages");
+    if (msgRes.status !== 200) return { success: false, reason: "Could not fetch messages" };
+    const msgs = Array.isArray(msgRes.data) ? msgRes.data : [];
+    const d = msgs.find(m => m.id === messageId);
+    if (!d) return { success: false, reason: "Message not found" };
+
+    applicationId = d.application_id || d.author?.id;
+    messageFlags = d.flags || 0;
+  }
 
   const nonce = String(Date.now()) + String(Math.random()).slice(2, 10);
   const payload = {
@@ -918,7 +954,7 @@ async function clickMessageButton(token, channelId, messageId, customId) {
     nonce,
     channel_id: channelId,
     message_id: messageId,
-    message_flags: d.flags || 0,
+    message_flags: messageFlags,
     application_id: applicationId,
     session_id: uuid(),
     data: { component_type: 2, custom_id: customId },
@@ -928,7 +964,47 @@ async function clickMessageButton(token, channelId, messageId, customId) {
   return makeRequest("POST", "/api/v9/interactions", token, "Interact", JSON.stringify(payload)).then(r => {
     if (r.status === 204 || r.status === 200) return { success: true };
     const parsed = typeof r.data === "object" ? r.data : null;
-    return { success: false, reason: parsed?.message || r.data || "Unknown" };
+    return { success: false, reason: parsed?.message || r.data || `HTTP ${r.status}` };
+  });
+}
+
+function testProxyConnection(proxyUrl) {
+  return new Promise((resolve) => {
+    const start = Date.now();
+    try {
+      const agent = new HttpsProxyAgent(proxyUrl);
+      const req = https.request({
+        hostname: "discord.com",
+        path: "/api/v9/gateway",
+        method: "GET",
+        headers: { "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" },
+        agent,
+        timeout: 8000,
+      }, (res) => {
+        let b = "";
+        res.on("data", c => b += c);
+        res.on("end", () => {
+          const latency = Date.now() - start;
+          if (res.statusCode === 200) {
+            resolve({ success: true, latency, status: res.statusCode, proxyUrl });
+          } else if (res.statusCode === 429) {
+            resolve({ success: false, latency, status: 429, error: "Rate Limited (429)", proxyUrl });
+          } else {
+            resolve({ success: false, latency, status: res.statusCode, error: `HTTP ${res.statusCode}`, proxyUrl });
+          }
+        });
+      });
+      req.on("error", (err) => {
+        resolve({ success: false, latency: Date.now() - start, error: err.message, proxyUrl });
+      });
+      req.on("timeout", () => {
+        req.destroy();
+        resolve({ success: false, latency: Date.now() - start, error: "Timeout (>8s)", proxyUrl });
+      });
+      req.end();
+    } catch (err) {
+      resolve({ success: false, latency: 0, error: err.message, proxyUrl });
+    }
   });
 }
 
@@ -937,5 +1013,5 @@ module.exports = {
   joinServer, joinWithCaptcha, changeNickname, changeGlobalName, leaveServer,
   changeBio, sendFriendRequest, changeStatus, reactToMessage, fetchChannelMessages,
   fetchReactionUsers, fetchMessageComponents, clickMessageButton, closeAllGateways,
-  maskToken,
+  maskToken, testProxyConnection, getRandomProxy, loadProxies,
 };
